@@ -2,7 +2,7 @@
 # -*- coding:utf-8 _*-
 # @author  : Lin Luo / Bruce Liu
 # @time    : 2020/1/3 22:12
-# @contact : 15869300264@163.com
+# @contact : 15869300264@163.com / bruce.w.y.liu@gmail.com
 from models.kms.key_manager import KeyManager
 from utils.exceptions.ip_exception import IPException
 from utils.exceptions import BasicException
@@ -12,9 +12,9 @@ import requests
 class KMS(object):
     def __init__(self, key_manager=KeyManager):
         self._key_manager = key_manager()
-        self._server_url = '127.0.0.1:8045'
+        self._server_url = '127.0.0.1:8045/internal'
 
-    def add_key(self, ip: str):
+    def add_key(self, ip: str) -> None:
         """
 
         :param ip:
@@ -24,11 +24,11 @@ class KMS(object):
             sk = self._key_manager.create_sk(ip)
             self.reload_key()
             print(f'key add completed for ip:{ip}')
-            print(sk)
+            print(f'sk: {sk}')
         except IPException as e:
             print(str(e))
 
-    def delete_key(self, keyword: str):
+    def delete_key(self, keyword: str) -> None:
         """
 
         :param keyword:
@@ -43,7 +43,7 @@ class KMS(object):
         except BasicException as e:
             print(str(e))
 
-    def check_ip(self, ip: str):
+    def check_ip(self, ip: str) -> None:
         """
 
         :param ip:
@@ -51,15 +51,13 @@ class KMS(object):
         """
         pass
 
-    def reload_key(self):
+    def reload_key(self) -> None:
         """
 
         :return:
         """
-        try:
-            requests.get(self._server_url)
-        except requests.HTTPError as e:
-            pass
+        # try:
+        #     requests.get(self._server_url)
+        # except requests.HTTPError as e:
+        #     pass
 
-
-kms = KMS()

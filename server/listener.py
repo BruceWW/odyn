@@ -2,22 +2,27 @@
 # -*- coding:utf-8 _*-
 # @author  : Lin Luo / Bruce Liu
 # @time    : 2020/1/3 22:12
-# @contact : 15869300264@163.com
+# @contact : 15869300264@163.com / bruce.w.y.liu@gmail.com
 import logging
 import uuid
+from importlib import import_module
 
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
 from dynaconf import settings as ds
 
-from models.kms import key_manager
+from utils.coder import version_manage
+from models.kms import KeyManager
+from utils.exceptions import BasicException
 
 logger = logging.getLogger(__name__)
 
+key_manager = KeyManager()
+
 
 class KeyHandler(tornado.web.RequestHandler):
-    def post(self):
+    def get(self):
         """
 
         :return:
@@ -36,7 +41,10 @@ class KeyHandler(tornado.web.RequestHandler):
 
 
 class DBHandler(tornado.websocket.WebSocketHandler):
-    waiters = set()
+    code = None
+    module = import_module(ds.MODULE)
+    tmp = eval(f'module.{ds.DB_CLIENT}')
+    db_client = tmp()
 
     def check_origin(self, origin: str) -> bool:
         return True
@@ -47,7 +55,6 @@ class DBHandler(tornado.websocket.WebSocketHandler):
         :return:
         """
         self._uid = str(uuid.uuid4())
-        DBHandler.waiters.add(self)
 
     def on_message(self, code):
         """
@@ -55,9 +62,14 @@ class DBHandler(tornado.websocket.WebSocketHandler):
         :param code:
         :return:
         """
-        if key_manager.check_code(code):
-            for client in DBHandler.waiters:
-                client.write_message(code)
+        request_ip = self.request.remote_ip
+        if key_manager.check_sk(request_ip, code):
+            try:
+                info = self.db_client.create_user(code, request_ip, 'all', 'city_uv')
+                self.code = code
+                self.write_message(version_manage(str(info, 'utf-8'), 200))
+            except BasicException as e:
+                self.write_message(str(e))
         else:
             self.write_message('code error')
 
@@ -66,7 +78,8 @@ class DBHandler(tornado.websocket.WebSocketHandler):
         客户端关闭连接时，，自动执行
         :return:
         """
-        DBHandler.waiters.remove(self)
+        if self.code is not None:
+            self.db_client.sign_off_user(self.code)
 
 
 def run(port: int = ds.get('port')):
@@ -77,5 +90,7 @@ def run(port: int = ds.get('port')):
     application.listen(port)
     tornado.ioloop.IOLoop.instance().start()
 
-# if __name__ == "__main__":
-#     run()
+
+if __name__ == "__main__":
+    print(123)
+    run()

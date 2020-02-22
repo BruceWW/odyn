@@ -12,6 +12,7 @@ tornado = "==6.0.3"
 ipy = "==1.0"
 requests = "*"
 dynaconf = "*"
+websocket-client = "*"
 
 [requires]
 python_version = "3.7"
